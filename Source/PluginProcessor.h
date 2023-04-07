@@ -67,7 +67,18 @@ private:
         std::unique_ptr<juce::AudioProcessorValueTreeState::ParameterLayout> createParameterLayout();
 
         // The Processor class
-        class Processor;
+        class Processor
+        {
+        public:
+            Processor(MidSidePluginAudioProcessor& p) : processor(p) {}
+            ~Processor() {}
+        
+        void process(juce::AudioBuffer<float>& buffer);
+        
+        private:
+            MidSidePluginAudioProcessor& processor;
+        };
+    
         std::unique_ptr<Processor> processor;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidSidePluginAudioProcessor)

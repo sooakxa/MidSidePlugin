@@ -31,7 +31,7 @@ MidSidePluginAudioProcessor::MidSidePluginAudioProcessor()
     apvts.addParameterListener("side", &*this);
 
     // Set up the processor
-    processor.reset(new Processor());
+    processor.reset(new Processor(*this));
 }
 
 std::unique_ptr<juce::AudioProcessorValueTreeState::ParameterLayout> MidSidePluginAudioProcessor::createParameterLayout()

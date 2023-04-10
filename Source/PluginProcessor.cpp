@@ -224,5 +224,5 @@ void MidSidePluginAudioProcessor::setStateInformation (const void* data, int siz
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new MidSidePluginAudioProcessor();
-}
+    //return new MidSidePluginAudioProcessor();
+};

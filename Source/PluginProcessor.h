@@ -1,86 +1,65 @@
-/*
-  ==============================================================================
+//=============================================================================
+#ifndef INCLUDE_PLUGINPROCESSOR_MjAxNjAy54Gr5puc5pelMDY0NTQw
+#define INCLUDE_PLUGINPROCESSOR_MjAxNjAy54Gr5puc5pelMDY0NTQw
+//=============================================================================
+#include "../JuceLibraryCode/JuceHeader.h"
+//=============================================================================
 
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
-
-
-#pragma once
-
-#include <JuceHeader.h>
-
-//==============================================================================
-/**
-*/
-class Processor;
-class MidSidePluginAudioProcessor  : public juce::AudioProcessor,
-public juce::AudioProcessorValueTreeState::Listener
-                            #if JucePlugin_Enable_ARA
-                             , public juce::AudioProcessorARAExtension
-                            #endif
+//=============================================================================
+class MidSideV7  : public AudioProcessor
 {
 public:
-    //==============================================================================
-    MidSidePluginAudioProcessor();
-    ~MidSidePluginAudioProcessor() override;
+    //=========================================================================
+    MidSideV7();
+    ~MidSideV7();
 
-    //==============================================================================
+    //=========================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
+    void processBlock (AudioSampleBuffer&, MidiBuffer&) override;
 
-   #ifndef JucePlugin_PreferredChannelConfigurations
-    bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
-   #endif
-
-    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
-
-    //==============================================================================
-    juce::AudioProcessorEditor* createEditor() override;
+    //=========================================================================
+    AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
 
-    //==============================================================================
-    const juce::String getName() const override;
-
+    //=========================================================================
+    const String getName() const override;
     bool acceptsMidi() const override;
     bool producesMidi() const override;
-    bool isMidiEffect() const override;
+    bool silenceInProducesSilenceOut() const override;
     double getTailLengthSeconds() const override;
 
-    //==============================================================================
+    //=========================================================================
     int getNumPrograms() override;
     int getCurrentProgram() override;
     void setCurrentProgram (int index) override;
-    const juce::String getProgramName (int index) override;
-    void changeProgramName (int index, const juce::String& newName) override;
+    const String getProgramName (int index) override;
+    void changeProgramName (int index, const String& newName) override;
 
-    //==============================================================================
-    void getStateInformation (juce::MemoryBlock& destData) override;
+    //=========================================================================
+    void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    //=========================================================================
+    bool isMidMode() const { return _m_isMidMode; }
+    void setMidMode( bool val ) { _m_isMidMode = val; }
+    void toggleMidMode() { _m_isMidMode = (isMidMode() == false); }
+    //=========================================================================
+    bool isDoubleLevelMode() const { return _m_isDoubleLevel; }
+    void setDoubleLevelMode( bool val ) { _m_isDoubleLevel = val; }
+    void toggleDoubleLevelMode() { _m_isDoubleLevel = (isDoubleLevelMode() == false); }
+
 private:
-    //==============================================================================
-    // Parameter layout for our plugin
-        juce::AudioProcessorValueTreeState apvts;
-
-        // Declare the parameters
-        std::unique_ptr<juce::AudioProcessorValueTreeState::ParameterLayout> createParameterLayout();
-
-        // The Processor class
-        class Processor
-        {
-        public:
-            Processor(MidSidePluginAudioProcessor& p) : processor(p) {}
-            ~Processor() {}
-        
-        void process(juce::AudioBuffer<float>& buffer);
-        
-        private:
-            MidSidePluginAudioProcessor& processor;
-        };
-    
-        std::unique_ptr<Processor> processor;
-    
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidSidePluginAudioProcessor)
+    //=========================================================================
+    void _processMid ( AudioSampleBuffer& buffer );
+    void _processSide( AudioSampleBuffer& buffer );
+    //=========================================================================
+    bool _m_isMidMode;
+    bool _m_isDoubleLevel;
+    //=========================================================================
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidSideV7)
+    //=========================================================================
 };
+//=============================================================================
+#endif // INCLUDE_PLUGINPROCESSOR_MjAxNjAy54Gr5puc5pelMDY0NTQw 
+//=============================================================================

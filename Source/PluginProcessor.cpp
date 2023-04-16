@@ -1,64 +1,26 @@
-/*
-  ==============================================================================
 
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
-
+//=============================================================================
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+//=============================================================================
 
-//==============================================================================
-MidSidePluginAudioProcessor::MidSidePluginAudioProcessor()
-#ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     #endif
-                       ), apvts(*this, nullptr, "Parameters", createParameterLayout())
-#endif
-{
-    // Set up the parameter layout
-    auto parameterLayout = createParameterLayout();
-
-    apvts.createAndAddParameter("mid", "Mid", "", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f, nullptr, nullptr);
-    apvts.createAndAddParameter("side", "Side", "", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f, nullptr, nullptr);
-    apvts.addParameterListener("mid", &*this);
-    apvts.addParameterListener("side", &*this);
-
-    // Set up the processor
-    processor.reset(new Processor(*this));
-}
-
-std::unique_ptr<juce::AudioProcessorValueTreeState::ParameterLayout> MidSidePluginAudioProcessor::createParameterLayout()
-{
-    // Create the "Mid" and "Side" buttons
-    auto midParam = std::make_unique<juce::AudioParameterBool>("mid", "Mid", false);
-    auto sideParam = std::make_unique<juce::AudioParameterBool>("side", "Side", false);
-
-    // Create the parameter layout
-    auto layout = std::make_unique<juce::AudioProcessorValueTreeState::ParameterLayout>();
-    layout->add(std::move(midParam));
-    layout->add(std::move(sideParam));
-
-    return layout;
-}
-
-MidSidePluginAudioProcessor::~MidSidePluginAudioProcessor()
+//=============================================================================
+MidSideV7::MidSideV7()
+    :_m_isMidMode(true)
+    ,_m_isDoubleLevel(false)
 {
 }
-
-//==============================================================================
-const juce::String MidSidePluginAudioProcessor::getName() const
+//=============================================================================
+MidSideV7::~MidSideV7()
+{
+}
+//=============================================================================
+const String MidSideV7::getName() const
 {
     return JucePlugin_Name;
 }
-
-bool MidSidePluginAudioProcessor::acceptsMidi() const
+//=============================================================================
+bool MidSideV7::acceptsMidi() const
 {
    #if JucePlugin_WantsMidiInput
     return true;
@@ -66,8 +28,8 @@ bool MidSidePluginAudioProcessor::acceptsMidi() const
     return false;
    #endif
 }
-
-bool MidSidePluginAudioProcessor::producesMidi() const
+//=============================================================================
+bool MidSideV7::producesMidi() const
 {
    #if JucePlugin_ProducesMidiOutput
     return true;
@@ -75,154 +37,158 @@ bool MidSidePluginAudioProcessor::producesMidi() const
     return false;
    #endif
 }
-
-bool MidSidePluginAudioProcessor::isMidiEffect() const
+//=============================================================================
+bool MidSideV7::silenceInProducesSilenceOut() const
 {
-   #if JucePlugin_IsMidiEffect
-    return true;
-   #else
     return false;
-   #endif
 }
-
-double MidSidePluginAudioProcessor::getTailLengthSeconds() const
+//=============================================================================
+double MidSideV7::getTailLengthSeconds() const
 {
     return 0.0;
 }
-
-int MidSidePluginAudioProcessor::getNumPrograms()
+//=============================================================================
+int MidSideV7::getNumPrograms()
 {
     return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
                 // so this should be at least 1, even if you're not really implementing programs.
 }
-
-int MidSidePluginAudioProcessor::getCurrentProgram()
+//=============================================================================
+int MidSideV7::getCurrentProgram()
 {
     return 0;
 }
-
-void MidSidePluginAudioProcessor::setCurrentProgram (int index)
+//=============================================================================
+void MidSideV7::setCurrentProgram (int index)
 {
 }
-
-const juce::String MidSidePluginAudioProcessor::getProgramName (int index)
+//=============================================================================
+const String MidSideV7::getProgramName (int index)
 {
-    return {};
+    return String();
 }
-
-void MidSidePluginAudioProcessor::changeProgramName (int index, const juce::String& newName)
+//=============================================================================
+void MidSideV7::changeProgramName (int index, const String& newName)
 {
 }
-
-//==============================================================================
-void MidSidePluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+//=============================================================================
+void MidSideV7::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
 }
-
-void MidSidePluginAudioProcessor::releaseResources()
+//=============================================================================
+void MidSideV7::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
 }
-
-#ifndef JucePlugin_PreferredChannelConfigurations
-bool MidSidePluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+//=============================================================================
+void MidSideV7::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {
-  #if JucePlugin_IsMidiEffect
-    juce::ignoreUnused (layouts);
-    return true;
-  #else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    // Some plugin hosts, such as certain GarageBand versions, will only
-    // load plugins that support stereo bus layouts.
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-
-    // This checks if the input layout matches the output layout
-   #if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-        return false;
-   #endif
-
-    return true;
-  #endif
-}
-#endif
-
-void MidSidePluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
-{
-    juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
-    const int numInputChannels = buffer.getNumChannels();
-    const int numSamples = buffer.getNumSamples();
-
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+    //=========================================================================
+    for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    //=========================================================================
+    if ( getNumInputChannels() == 2 )
     {
-        auto* channelData = buffer.getWritePointer(channel);
-
-                for (int sample = 0; sample < numSamples; ++sample)
-                {
-                    float leftSample = buffer.getSample(0, sample);
-                    float rightSample = buffer.getSample(1, sample);
-
-                    // Apply mid-side processing
-                    float midSample = (leftSample + rightSample) * 0.5f;
-                    float sideSample = (leftSample - rightSample) * 0.5f;
-
-                    // Write back the processed samples
-                    channelData[sample] = midSample + sideSample;
-                }
-            }
-        }
-
-//==============================================================================
-bool MidSidePluginAudioProcessor::hasEditor() const
+        if ( isMidMode() )
+            _processMid ( buffer );
+        else
+            _processSide( buffer );
+    }
+    //=========================================================================
+}
+//=============================================================================
+bool MidSideV7::hasEditor() const
 {
     return true; // (change this to false if you choose to not supply an editor)
 }
-
-juce::AudioProcessorEditor* MidSidePluginAudioProcessor::createEditor()
+//=============================================================================
+AudioProcessorEditor* MidSideV7::createEditor()
 {
-    return new MidSidePluginAudioProcessorEditor (*this);
+    return new MidSideV7Editor (*this);
 }
-
-//==============================================================================
-void MidSidePluginAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+//=============================================================================
+void MidSideV7::getStateInformation (MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    //=========================================================================
+    XmlElement xml( "kawaMidSide_Parameter" );
+    //=========================================================================
+    xml.setAttribute( "isMidMode", isMidMode() );
+    xml.setAttribute( "isDoubleLevelMode", isDoubleLevelMode() );
+    //=========================================================================
+    copyXmlToBinary (xml, destData);
+    //=========================================================================
 }
-
-void MidSidePluginAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+//=============================================================================
+void MidSideV7::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    ScopedPointer<XmlElement> xmlState( getXmlFromBinary (data, sizeInBytes) );
+    //=========================================================================
+    if ( xmlState != nullptr )
+    {
+        if ( xmlState->hasTagName( "kawaMidSide_Parameter" ) )
+        {
+            bool isMideMode_ = xmlState->getBoolAttribute( "isMidMode", false );
+            bool isDoubleMode_ = xmlState->getBoolAttribute( "isDoubleLevelMode", false );
+            //=================================================================
+            setDoubleLevelMode( isDoubleMode_ );
+            setMidMode( isMideMode_ );
+            //=================================================================
+        }
+    }
+    //=========================================================================
 }
-
-//==============================================================================
-// This creates new instances of the plugin..
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+//=============================================================================
+void MidSideV7::_processMid( AudioSampleBuffer& buffer )
 {
-    //return new MidSidePluginAudioProcessor();
-};
+    const float* inL = buffer.getReadPointer( 0 );//L 
+    const float* inR = buffer.getReadPointer( 1 );//R
+    float* outL = buffer.getWritePointer( 0 );
+    float* outR = buffer.getWritePointer( 1 );
+    int blockSize = buffer.getNumSamples();
+    //=========================================================================
+    float offsetLevel = 1.0f;
+    //=========================================================================
+    if ( isDoubleLevelMode() )
+        offsetLevel = 2.0f;
+    //=========================================================================
+    for ( int i = 0; i < blockSize; i++ )
+    {
+        float mid = (inL[i] +inR[i] )/2;
+        outL[i] = mid*offsetLevel;
+        outR[i] = mid*offsetLevel;
+    }
+    //=========================================================================
+}
+//=============================================================================
+void MidSideV7::_processSide( AudioSampleBuffer& buffer )
+{
+    const float* inL = buffer.getReadPointer( 0 );//L 
+    const float* inR = buffer.getReadPointer( 1 );//R
+    float* outL = buffer.getWritePointer( 0 );
+    float* outR = buffer.getWritePointer( 1 );
+    int blockSize = buffer.getNumSamples();
+    //=========================================================================
+    float offsetLevel = 1.0f;
+    //=========================================================================
+    if ( isDoubleLevelMode() )
+        offsetLevel = 2.0f;
+    //=========================================================================
+    for ( int i = 0; i < blockSize; i++ )
+    {
+        float mid = (inL[i] + inR[i]) / 2.0f;
+        float sideL = inL[i] - mid;
+        float sideR = inR[i] - mid;
+        outL[i] = sideL*offsetLevel;
+        outR[i] = sideR*offsetLevel;
+    }
+    //=========================================================================
+}
+//=============================================================================
+AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+    return new MidSideV7();
+}
+//=============================================================================

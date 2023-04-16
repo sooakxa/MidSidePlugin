@@ -1,40 +1,132 @@
-/*
-  ==============================================================================
 
-    This file contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
-
+//=============================================================================
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-
 //==============================================================================
-MidSidePluginAudioProcessorEditor::MidSidePluginAudioProcessorEditor (MidSidePluginAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
+MidSideV7Editor::MidSideV7Editor (MidSideV7& p)
+: AudioProcessorEditor (&p)
+, processor (p)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setSize (400, 300);
+    m_DoubleLevelSwitch = new TextButton( BUTTON_TEXT_NORMAL_MODE );
+    m_MidSideSwitch = new TextButton( BUTTON_TEXT_MID_MODE );
+    //=========================================================================
+    m_MidSideSwitch->setLookAndFeel( &lnf );
+    m_DoubleLevelSwitch->setLookAndFeel( &lnf );
+    //=========================================================================
+    m_MidSideSwitch->setConnectedEdges( TextButton::ConnectedOnLeft 
+                                      | TextButton::ConnectedOnRight );
+    m_DoubleLevelSwitch->setConnectedEdges( TextButton::ConnectedOnLeft 
+                                          | TextButton::ConnectedOnRight );
+    //=========================================================================
+    addAndMakeVisible( m_MidSideSwitch );
+    addAndMakeVisible( m_DoubleLevelSwitch );
+    //=========================================================================
+    m_DoubleLevelSwitch->addListener( this );
+    m_MidSideSwitch->addListener( this );
+    //=========================================================================
+    setSize (WINDOW_WIDTH, WINDOW_HEGIHT);
+    //=========================================================================
+    _syncTextButtonName();
+    //=========================================================================
+    startTimer( UPDATE_TIMER_TIME_MS );
 }
-
-MidSidePluginAudioProcessorEditor::~MidSidePluginAudioProcessorEditor()
+//=============================================================================
+MidSideV7Editor::~MidSideV7Editor()
 {
+    if ( isTimerRunning() )
+        stopTimer();
+    //=========================================================================
 }
-
-//==============================================================================
-void MidSidePluginAudioProcessorEditor::paint (juce::Graphics& g)
+//=============================================================================
+void MidSideV7Editor::paint (Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
-
-    g.setColour (juce::Colours::white);
-    g.setFont (15.0f);
-    g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);
+    g.fillAll (Colours::black);
 }
-
-void MidSidePluginAudioProcessorEditor::resized()
+//=============================================================================
+void MidSideV7Editor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
+    auto rect = getLocalBounds();
+    int reduce = 0;
+    //=========================================================================
+    auto oneButtonRect = rect.removeFromTop( rect.getHeight() / 2 );
+    m_MidSideSwitch->setBounds( oneButtonRect.reduced( reduce ) );
+    //=========================================================================
+    oneButtonRect.translate( 0, oneButtonRect.getHeight()-reduce /2 );
+    m_DoubleLevelSwitch->setBounds( oneButtonRect.reduced( reduce ) );
+    //=========================================================================
 }
+//=============================================================================
+void MidSideV7Editor::buttonClicked( Button* bt )
+{
+    if ( bt == m_MidSideSwitch )
+    {
+        processor.toggleMidMode();
+        //=====================================================================
+        m_MidSideSwitch->setToggleState( processor.isMidMode()
+                                       , NotificationType::dontSendNotification );
+    }
+    else if ( bt == m_DoubleLevelSwitch )
+    {
+        processor.toggleDoubleLevelMode();
+        //=====================================================================
+        m_DoubleLevelSwitch->setToggleState( processor.isDoubleLevelMode()
+                                           , NotificationType::dontSendNotification);
+    }
+    //=========================================================================
+    _syncTextButtonName();
+}
+//=============================================================================
+void MidSideV7Editor::_syncTextButtonName()
+{
+    if ( processor.isMidMode() )
+    {
+        m_MidSideSwitch->setButtonText( BUTTON_TEXT_MID_MODE );
+        _changeColor( m_MidSideSwitch, COLOR_MIDE_MODE_Back, COLOR_MIDE_MODE_TEXT );
+    }
+    else
+    {
+        m_MidSideSwitch->setButtonText( BUTTON_TEXT_SIDE_MODE );
+        _changeColor( m_MidSideSwitch, COLOR_SIDE_MODE_Back, COLOR_SIDE_MODE_TEXT );
+    }
+    //=========================================================================
+    if ( processor.isDoubleLevelMode() )
+    {
+        m_DoubleLevelSwitch->setButtonText( BUTTON_TEXT_DOUBLE_MODE);
+        _changeColor( m_DoubleLevelSwitch, COLOR_DOUBLE_LEVEL_MODE_Back, COLOR_DOUBLE_LEVEL_MODE__TEXT );
+    }
+    else
+    {
+        m_DoubleLevelSwitch->setButtonText( BUTTON_TEXT_NORMAL_MODE );
+        _changeColor( m_DoubleLevelSwitch, COLOR_NORMAL_LEVEL_MODE_Back, COLOR_NORMAL_LEVEL_MODE_TEXT );
+    };
+    //=========================================================================
+}
+//=============================================================================
+void MidSideV7Editor::_changeColor( TextButton* bt, Colour newColor, Colour newTextColor )
+{
+    bt->setColour( TextButton::ColourIds::buttonColourId, newColor );
+    bt->setColour( TextButton::ColourIds::buttonOnColourId, newColor );
+    //=========================================================================
+    bt->setColour( TextButton::ColourIds::textColourOffId , newTextColor );
+    bt->setColour( TextButton::ColourIds::textColourOnId , newTextColor );
+}
+//=============================================================================
+void MidSideV7Editor::timerCallback()
+{
+    syncTextButton();
+}
+//=============================================================================
+
+//=============================================================================
+MidSideV7Editor::LNF_TextButton::LNF_TextButton()
+{
+    m_textButtonFont.setTypefaceName("arial");
+}
+//=============================================================================
+Font MidSideV7Editor::LNF_TextButton::getTextButtonFont( TextButton&, int buttonHeight )
+{
+    m_textButtonFont.setHeight(buttonHeight);
+    m_textButtonFont.setBold(true);
+    return m_textButtonFont;
+}
+//=============================================================================
